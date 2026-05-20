@@ -1,0 +1,543 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>The Little Mermaid Jr – St Mary Star of the Sea College</title>
+<style>
+  @import url('https://fonts.googleapis.com/css2?family=Cinzel:wght@400;700&family=Lato:wght@300;400&display=swap');
+
+  *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+  body {
+    background: radial-gradient(ellipse at 50% 0%, #0a2a4a 0%, #040d1a 70%);
+    min-height: 100vh;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: flex-start;
+    font-family: 'Lato', sans-serif;
+    color: #e8f4f8;
+    overflow-x: hidden;
+    padding: 20px 10px 40px;
+  }
+
+  /* Bubbles */
+  .bubbles { position: fixed; inset: 0; pointer-events: none; z-index: 0; overflow: hidden; }
+  .bubble {
+    position: absolute;
+    bottom: -60px;
+    border-radius: 50%;
+    background: radial-gradient(circle at 35% 35%, rgba(255,255,255,0.35), rgba(100,200,255,0.08));
+    border: 1px solid rgba(255,255,255,0.2);
+    animation: rise linear infinite;
+  }
+  @keyframes rise {
+    to { transform: translateY(-110vh) translateX(30px); opacity: 0; }
+  }
+
+  header {
+    text-align: center;
+    margin-bottom: 24px;
+    position: relative;
+    z-index: 1;
+  }
+  header h1 {
+    font-family: 'Cinzel', serif;
+    font-size: clamp(18px, 4vw, 32px);
+    color: #f5e06a;
+    text-shadow: 0 0 20px rgba(245,224,106,0.5), 0 2px 8px rgba(0,0,0,0.8);
+    letter-spacing: 0.08em;
+    line-height: 1.2;
+  }
+  header p {
+    font-size: clamp(11px, 2vw, 14px);
+    color: #a8d8ea;
+    margin-top: 6px;
+    letter-spacing: 0.15em;
+    text-transform: uppercase;
+  }
+
+  /* ── BOOK CONTAINER ── */
+  .scene {
+    perspective: 2000px;
+    position: relative;
+    z-index: 1;
+  }
+
+  .book-wrap {
+    position: relative;
+    display: flex;
+    align-items: center;
+    gap: 0;
+    filter: drop-shadow(0 30px 60px rgba(0,0,0,0.7));
+  }
+
+  /* Each spread has left-page + right-page */
+  .spread {
+    display: flex;
+    position: relative;
+  }
+
+  .page-side {
+    width: var(--page-w);
+    height: var(--page-h);
+    overflow: hidden;
+    position: relative;
+    background: #0a1a2a;
+  }
+  .page-side.left { border-radius: 4px 0 0 4px; }
+  .page-side.right { border-radius: 0 4px 4px 0; }
+
+  .page-side img {
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+    display: block;
+    user-select: none;
+    -webkit-user-drag: none;
+  }
+
+  /* spine */
+  .spine {
+    width: 12px;
+    height: var(--page-h);
+    background: linear-gradient(to right, #0a1018, #1a2d42, #0a1018);
+    flex-shrink: 0;
+    position: relative;
+    z-index: 10;
+    box-shadow: 0 0 15px rgba(0,0,0,0.5);
+  }
+
+  /* Page turn overlay */
+  .turn-overlay {
+    position: absolute;
+    top: 0; right: 0;
+    width: var(--page-w);
+    height: var(--page-h);
+    transform-origin: left center;
+    transform-style: preserve-3d;
+    transition: transform 0.65s cubic-bezier(0.645, 0.045, 0.355, 1.000);
+    z-index: 5;
+    pointer-events: none;
+  }
+  .turn-overlay.turning { transform: rotateY(-180deg); }
+
+  .turn-face, .turn-back {
+    position: absolute;
+    inset: 0;
+    backface-visibility: hidden;
+    -webkit-backface-visibility: hidden;
+    overflow: hidden;
+    border-radius: 0 4px 4px 0;
+  }
+  .turn-back { transform: rotateY(180deg); border-radius: 4px 0 0 4px; }
+  .turn-face img, .turn-back img { width: 100%; height: 100%; object-fit: cover; display: block; }
+
+  /* Fold shadow on turning page */
+  .fold-shadow {
+    position: absolute;
+    top: 0; left: 0;
+    width: 30px; height: 100%;
+    background: linear-gradient(to right, rgba(0,0,0,0.35), transparent);
+    pointer-events: none;
+    z-index: 6;
+    opacity: 0;
+    transition: opacity 0.3s;
+  }
+  .turning + .fold-shadow { opacity: 1; }
+
+  /* page number badges */
+  .page-num {
+    position: absolute;
+    bottom: 8px;
+    font-family: 'Cinzel', serif;
+    font-size: 11px;
+    color: rgba(255,255,255,0.5);
+    z-index: 3;
+    pointer-events: none;
+  }
+  .page-side.left .page-num { left: 12px; }
+  .page-side.right .page-num { right: 12px; }
+
+  /* ── CONTROLS ── */
+  .controls {
+    display: flex;
+    align-items: center;
+    gap: 16px;
+    margin-top: 28px;
+    position: relative;
+    z-index: 1;
+  }
+
+  .btn {
+    background: linear-gradient(135deg, #0d3d6e, #0a2a4a);
+    border: 1px solid rgba(100, 200, 255, 0.3);
+    color: #a8d8ea;
+    padding: 10px 28px;
+    border-radius: 30px;
+    font-family: 'Cinzel', serif;
+    font-size: 13px;
+    letter-spacing: 0.1em;
+    cursor: pointer;
+    transition: all 0.25s;
+    box-shadow: 0 4px 15px rgba(0,0,0,0.3);
+  }
+  .btn:hover:not(:disabled) {
+    background: linear-gradient(135deg, #1a5fa0, #0d3d6e);
+    border-color: rgba(100,200,255,0.6);
+    color: #e8f4ff;
+    transform: translateY(-2px);
+    box-shadow: 0 6px 20px rgba(0,0,0,0.4);
+  }
+  .btn:disabled { opacity: 0.35; cursor: not-allowed; }
+
+  .page-indicator {
+    font-family: 'Cinzel', serif;
+    font-size: 13px;
+    color: #a8d8ea;
+    min-width: 100px;
+    text-align: center;
+    letter-spacing: 0.08em;
+  }
+
+  /* thumbnail strip */
+  .thumb-strip {
+    display: flex;
+    gap: 8px;
+    margin-top: 20px;
+    overflow-x: auto;
+    max-width: 90vw;
+    padding: 8px 4px;
+    position: relative;
+    z-index: 1;
+    scrollbar-width: thin;
+    scrollbar-color: #1a4a6e transparent;
+  }
+  .thumb-strip::-webkit-scrollbar { height: 4px; }
+  .thumb-strip::-webkit-scrollbar-track { background: transparent; }
+  .thumb-strip::-webkit-scrollbar-thumb { background: #1a4a6e; border-radius: 2px; }
+
+  .thumb {
+    flex-shrink: 0;
+    width: 48px;
+    height: 68px;
+    border-radius: 3px;
+    overflow: hidden;
+    cursor: pointer;
+    border: 2px solid transparent;
+    transition: all 0.2s;
+    opacity: 0.6;
+  }
+  .thumb:hover { opacity: 0.9; transform: translateY(-3px); }
+  .thumb.active { border-color: #f5e06a; opacity: 1; transform: translateY(-3px); }
+  .thumb img { width: 100%; height: 100%; object-fit: cover; }
+
+  /* keyboard hint */
+  .hint {
+    margin-top: 14px;
+    font-size: 11px;
+    color: rgba(168,216,234,0.45);
+    letter-spacing: 0.1em;
+    text-align: center;
+    position: relative;
+    z-index: 1;
+  }
+
+  /* click zones on book */
+  .click-zone {
+    position: absolute;
+    top: 0; height: 100%;
+    width: 40%;
+    cursor: pointer;
+    z-index: 8;
+    background: transparent;
+  }
+  .click-zone.left-zone { left: 0; }
+  .click-zone.right-zone { right: 0; }
+  .click-zone:hover { background: rgba(255,255,255,0.03); }
+
+  /* loading state */
+  .loading-screen {
+    position: fixed; inset: 0;
+    background: #040d1a;
+    display: flex; flex-direction: column;
+    align-items: center; justify-content: center;
+    z-index: 100;
+    transition: opacity 0.5s;
+  }
+  .loading-screen.done { opacity: 0; pointer-events: none; }
+  .loading-fish {
+    font-size: 48px;
+    animation: swim 1.5s ease-in-out infinite;
+  }
+  @keyframes swim { 0%,100%{transform:translateY(0) rotate(-5deg)} 50%{transform:translateY(-12px) rotate(5deg)} }
+  .loading-text {
+    font-family: 'Cinzel', serif;
+    color: #f5e06a;
+    font-size: 16px;
+    margin-top: 16px;
+    letter-spacing: 0.15em;
+  }
+  .loading-bar-wrap { width: 200px; height: 4px; background: rgba(255,255,255,0.1); border-radius: 2px; margin-top: 12px; }
+  .loading-bar { height: 100%; background: linear-gradient(to right, #4ac9f0, #f5e06a); border-radius: 2px; transition: width 0.2s; }
+</style>
+</head>
+<body>
+
+<div class="loading-screen" id="loadingScreen">
+  <div class="loading-fish">🐠</div>
+  <div class="loading-text">Diving Under the Sea…</div>
+  <div class="loading-bar-wrap"><div class="loading-bar" id="loadingBar" style="width:0%"></div></div>
+</div>
+
+<!-- Bubbles -->
+<div class="bubbles" id="bubbles"></div>
+
+<header>
+  <h1>Disney's The Little Mermaid Jr</h1>
+  <p>St Mary Star of the Sea College · 21–23 May 2026</p>
+</header>
+
+<div class="scene">
+  <div class="book-wrap" id="bookWrap">
+    <div class="spread" id="spread">
+      <!-- Left page -->
+      <div class="page-side left" id="leftPage">
+        <img id="leftImg" src="" alt="Left page" draggable="false">
+        <span class="page-num" id="leftNum"></span>
+      </div>
+      <!-- Spine -->
+      <div class="spine"></div>
+      <!-- Right page -->
+      <div class="page-side right" id="rightPage">
+        <img id="rightImg" src="" alt="Right page" draggable="false">
+        <span class="page-num" id="rightNum"></span>
+      </div>
+
+      <!-- Page-turn overlay (animates over right side for forward, left side for back) -->
+      <div class="turn-overlay" id="turnOverlay">
+        <div class="turn-face"><img id="turnFaceImg" src="" alt="" draggable="false"></div>
+        <div class="turn-back"><img id="turnBackImg" src="" alt="" draggable="false"></div>
+      </div>
+      <div class="fold-shadow" id="foldShadow"></div>
+
+      <!-- Click zones -->
+      <div class="click-zone left-zone" id="leftZone" title="Previous page"></div>
+      <div class="click-zone right-zone" id="rightZone" title="Next page"></div>
+    </div>
+  </div>
+</div>
+
+<div class="controls">
+  <button class="btn" id="prevBtn">◀ Prev</button>
+  <span class="page-indicator" id="pageIndicator">1 / 16</span>
+  <button class="btn" id="nextBtn">Next ▶</button>
+</div>
+
+<div class="thumb-strip" id="thumbStrip"></div>
+<p class="hint">← → arrow keys to turn pages</p>
+
+<script>
+  // ── Config ──
+  const TOTAL_PAGES = 16;
+  const pages = Array.from({length: TOTAL_PAGES}, (_, i) => `pages/page_${String(i+1).padStart(2,'0')}.jpg`);
+
+  // ── Responsive sizing ──
+  function getPageSize() {
+    const vw = window.innerWidth;
+    const vh = window.innerHeight;
+    // Target: two pages side-by-side, portrait ratio ~0.707
+    let maxW = Math.min((vw - 80) / 2, 380);
+    let h = maxW / 0.707;
+    if (h > vh * 0.65) { h = vh * 0.65; maxW = h * 0.707; }
+    return { w: Math.round(maxW), h: Math.round(h) };
+  }
+
+  let { w: PAGE_W, h: PAGE_H } = getPageSize();
+
+  function applySize() {
+    document.documentElement.style.setProperty('--page-w', PAGE_W + 'px');
+    document.documentElement.style.setProperty('--page-h', PAGE_H + 'px');
+  }
+  applySize();
+
+  window.addEventListener('resize', () => {
+    ({ w: PAGE_W, h: PAGE_H } = getPageSize());
+    applySize();
+  });
+
+  // ── State ──
+  // Spread 0 = cover only (right side), left blank
+  // Spread 1 = pages 2&3, spread 2 = pages 4&5, etc.
+  // leftPage(s) = s===0 ? null : (s*2), rightPage(s) = s===0 ? 1 : (s*2+1)
+  let currentSpread = 0; // 0-based spread index
+  const TOTAL_SPREADS = Math.ceil((TOTAL_PAGES - 1) / 2) + 1; // cover + pairs
+  let turning = false;
+
+  // ── DOM ──
+  const leftImg = document.getElementById('leftImg');
+  const rightImg = document.getElementById('rightImg');
+  const leftNum = document.getElementById('leftNum');
+  const rightNum = document.getElementById('rightNum');
+  const turnOverlay = document.getElementById('turnOverlay');
+  const turnFaceImg = document.getElementById('turnFaceImg');
+  const turnBackImg = document.getElementById('turnBackImg');
+  const prevBtn = document.getElementById('prevBtn');
+  const nextBtn = document.getElementById('nextBtn');
+  const pageIndicator = document.getElementById('pageIndicator');
+  const thumbStrip = document.getElementById('thumbStrip');
+
+  // ── Preload all images ──
+  const imgCache = {};
+  let loaded = 0;
+  const loadingBar = document.getElementById('loadingBar');
+
+  function preload() {
+    return new Promise(resolve => {
+      pages.forEach((src, i) => {
+        const img = new Image();
+        img.onload = img.onerror = () => {
+          loaded++;
+          loadingBar.style.width = (loaded / TOTAL_PAGES * 100) + '%';
+          if (loaded === TOTAL_PAGES) resolve();
+        };
+        img.src = src;
+        imgCache[src] = img;
+      });
+    });
+  }
+
+  function getPageSrc(pageNum) { // 1-based
+    if (pageNum < 1 || pageNum > TOTAL_PAGES) return '';
+    return pages[pageNum - 1];
+  }
+
+  function getSpreadPages(spreadIdx) {
+    if (spreadIdx === 0) return { left: null, right: 1 };
+    return { left: spreadIdx * 2, right: spreadIdx * 2 + 1 };
+  }
+
+  function renderSpread(spreadIdx, animate) {
+    const { left: leftPageNum, right: rightPageNum } = getSpreadPages(spreadIdx);
+
+    leftImg.src = leftPageNum ? getPageSrc(leftPageNum) : '';
+    leftImg.style.opacity = leftPageNum ? '1' : '0';
+    leftNum.textContent = leftPageNum || '';
+    rightImg.src = rightPageNum <= TOTAL_PAGES ? getPageSrc(rightPageNum) : '';
+    rightNum.textContent = rightPageNum <= TOTAL_PAGES ? rightPageNum : '';
+
+    prevBtn.disabled = spreadIdx === 0;
+    nextBtn.disabled = spreadIdx >= TOTAL_SPREADS - 1;
+
+    pageIndicator.textContent = leftPageNum
+      ? `Pages ${leftPageNum}–${Math.min(rightPageNum, TOTAL_PAGES)} of ${TOTAL_PAGES}`
+      : `Cover · Page 1 of ${TOTAL_PAGES}`;
+
+    // Update thumbnails
+    document.querySelectorAll('.thumb').forEach((t, i) => {
+      t.classList.toggle('active', i === spreadIdx);
+    });
+    // Scroll active thumb into view
+    const activeThumb = thumbStrip.children[spreadIdx];
+    if (activeThumb) activeThumb.scrollIntoView({ behavior: 'smooth', block: 'nearest', inline: 'center' });
+  }
+
+  function turnPage(direction) {
+    if (turning) return;
+    const next = currentSpread + direction;
+    if (next < 0 || next >= TOTAL_SPREADS) return;
+
+    turning = true;
+
+    if (direction === 1) {
+      // Turning forward: right page flips to left
+      turnOverlay.style.transformOrigin = 'left center';
+      turnOverlay.style.right = 'auto';
+      turnOverlay.style.left = PAGE_W + 12 + 'px';
+      const { right: curRight } = getSpreadPages(currentSpread);
+      const { left: nextLeft } = getSpreadPages(next);
+      turnFaceImg.src = getPageSrc(curRight);
+      turnBackImg.src = nextLeft ? getPageSrc(nextLeft) : '';
+    } else {
+      // Turning backward: left page flips to right
+      turnOverlay.style.transformOrigin = 'right center';
+      turnOverlay.style.left = 'auto';
+      turnOverlay.style.right = PAGE_W + 12 + 'px';
+      const { left: curLeft } = getSpreadPages(currentSpread);
+      const { right: nextRight } = getSpreadPages(next);
+      turnFaceImg.src = curLeft ? getPageSrc(curLeft) : '';
+      turnBackImg.src = getPageSrc(nextRight);
+    }
+
+    turnOverlay.classList.add('turning');
+
+    setTimeout(() => {
+      currentSpread = next;
+      renderSpread(currentSpread, false);
+      turnOverlay.classList.remove('turning');
+      turning = false;
+    }, 650);
+  }
+
+  // ── Controls ──
+  prevBtn.addEventListener('click', () => turnPage(-1));
+  nextBtn.addEventListener('click', () => turnPage(1));
+  document.getElementById('leftZone').addEventListener('click', () => turnPage(-1));
+  document.getElementById('rightZone').addEventListener('click', () => turnPage(1));
+
+  document.addEventListener('keydown', e => {
+    if (e.key === 'ArrowRight') turnPage(1);
+    if (e.key === 'ArrowLeft') turnPage(-1);
+  });
+
+  // ── Thumbnails ──
+  function buildThumbs() {
+    for (let s = 0; s < TOTAL_SPREADS; s++) {
+      const { left, right } = getSpreadPages(s);
+      const thumbPage = left || right;
+      const div = document.createElement('div');
+      div.className = 'thumb';
+      div.title = left ? `Pages ${left}–${Math.min(right, TOTAL_PAGES)}` : 'Cover';
+      div.innerHTML = `<img src="${getPageSrc(thumbPage)}" alt="Spread ${s+1}" loading="lazy">`;
+      div.addEventListener('click', () => {
+        if (!turning && s !== currentSpread) {
+          currentSpread = s;
+          renderSpread(currentSpread, false);
+        }
+      });
+      thumbStrip.appendChild(div);
+    }
+  }
+
+  // ── Bubbles ──
+  function makeBubbles() {
+    const container = document.getElementById('bubbles');
+    for (let i = 0; i < 18; i++) {
+      const b = document.createElement('div');
+      b.className = 'bubble';
+      const size = 6 + Math.random() * 20;
+      b.style.cssText = `
+        width:${size}px; height:${size}px;
+        left:${Math.random()*100}%;
+        animation-duration:${8+Math.random()*14}s;
+        animation-delay:${Math.random()*12}s;
+        opacity:${0.3+Math.random()*0.4};
+      `;
+      container.appendChild(b);
+    }
+  }
+
+  // ── Init ──
+  makeBubbles();
+  buildThumbs();
+
+  preload().then(() => {
+    renderSpread(0, false);
+    const ls = document.getElementById('loadingScreen');
+    ls.classList.add('done');
+    setTimeout(() => ls.remove(), 600);
+  });
+</script>
+</body>
+</html>
