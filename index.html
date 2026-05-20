@@ -5,152 +5,130 @@
 <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0">
 <title>The Little Mermaid Jr – St Mary Star of the Sea College</title>
 <style>
-@import url('https://fonts.googleapis.com/css2?family=Cinzel:wght@400;700&family=Lato:wght@300;400&display=swap');
+@import url('https://fonts.googleapis.com/css2?family=Cinzel:wght@400;700&display=swap');
 *,*::before,*::after{box-sizing:border-box;margin:0;padding:0;}
 
 body{
   background:radial-gradient(ellipse at 50% 0%,#0a2a4a 0%,#040d1a 70%);
   min-height:100vh;
   display:flex;flex-direction:column;align-items:center;
-  font-family:'Lato',sans-serif;
+  font-family:system-ui,sans-serif;
   color:#e8f4f8;
   overflow-x:hidden;
   padding:16px 8px 32px;
+  user-select:none;
 }
 
-/* Bubbles */
 .bubbles{position:fixed;inset:0;pointer-events:none;z-index:0;overflow:hidden;}
 .bubble{
   position:absolute;bottom:-60px;border-radius:50%;
-  background:radial-gradient(circle at 35% 35%,rgba(255,255,255,0.3),rgba(100,200,255,0.05));
-  border:1px solid rgba(255,255,255,0.18);
+  background:radial-gradient(circle at 35% 35%,rgba(255,255,255,0.28),rgba(100,200,255,0.04));
+  border:1px solid rgba(255,255,255,0.16);
   animation:rise linear infinite;
 }
-@keyframes rise{to{transform:translateY(-110vh) translateX(20px);opacity:0;}}
+@keyframes rise{to{transform:translateY(-110vh);opacity:0;}}
 
 header{text-align:center;margin-bottom:16px;position:relative;z-index:1;}
 header h1{
   font-family:'Cinzel',serif;
   font-size:clamp(14px,3.5vw,28px);
   color:#f5e06a;
-  text-shadow:0 0 20px rgba(245,224,106,0.4),0 2px 8px rgba(0,0,0,0.8);
+  text-shadow:0 2px 16px rgba(245,224,106,0.35),0 2px 8px rgba(0,0,0,0.8);
   letter-spacing:0.06em;line-height:1.2;
 }
 header p{
-  font-size:clamp(9px,1.8vw,12px);
-  color:#a8d8ea;margin-top:5px;
-  letter-spacing:0.15em;text-transform:uppercase;
+  font-size:clamp(9px,1.8vw,12px);color:#a8d8ea;
+  margin-top:5px;letter-spacing:0.15em;text-transform:uppercase;
 }
 
-/* ── BOOK ── */
-.scene{perspective:2000px;position:relative;z-index:1;}
+/* ── BOOK CONTAINER ── */
+.book-scene{position:relative;z-index:1;filter:drop-shadow(0 24px 48px rgba(0,0,0,0.75));}
 
-.book-wrap{
-  display:flex;align-items:stretch;
-  filter:drop-shadow(0 24px 48px rgba(0,0,0,0.75));
+/* The book itself: flex row of [left-page][spine][right-page] */
+.book{
+  display:flex;
+  align-items:stretch;
   position:relative;
 }
 
-/* Individual page panels */
-.page-panel{
-  width:var(--pw);height:var(--ph);
-  overflow:hidden;position:relative;
-  background:#061422;flex-shrink:0;
+.page{
+  flex-shrink:0;overflow:hidden;background:#061422;
+  position:relative;
+  transition:width 0.3s ease;
 }
-.page-panel.left{border-radius:4px 0 0 4px;}
-.page-panel.right{border-radius:0 4px 4px 0;}
-.page-panel img{
-  width:100%;height:100%;object-fit:cover;
-  display:block;user-select:none;-webkit-user-drag:none;
+.page img{
+  width:100%;height:100%;
+  object-fit:cover;display:block;
 }
-/* Cover-only mode: hide left panel */
-.book-wrap.cover-mode .page-panel.left{
-  width:0;overflow:hidden;
-}
-.book-wrap.cover-mode .page-panel.right{
-  border-radius:4px;
-}
-.book-wrap.cover-mode .spine{width:0;}
 
+/* left page */
+#lp{border-radius:4px 0 0 4px;}
+/* right page */
+#rp{border-radius:0 4px 4px 0;}
+
+/* spine between pages */
 .spine{
-  width:10px;height:var(--ph);
+  flex-shrink:0;
   background:linear-gradient(to right,#050c14,#1d3348,#050c14);
-  flex-shrink:0;z-index:2;
+  position:relative;z-index:2;
 }
 
-/* Page number */
+/* page number labels */
 .pnum{
   position:absolute;bottom:7px;
   font-family:'Cinzel',serif;font-size:10px;
-  color:rgba(255,255,255,0.4);pointer-events:none;z-index:2;
+  color:rgba(255,255,255,0.4);pointer-events:none;z-index:3;
 }
-.page-panel.left .pnum{left:10px;}
-.page-panel.right .pnum{right:10px;}
+#lp .pnum{left:10px;}
+#rp .pnum{right:10px;}
 
-/* ── TURN OVERLAY ── */
-.turn-overlay{
+/* ── FLIP OVERLAY ──
+   Sits absolutely over the right page (for forward turns)
+   or left page (for backward turns).
+   Uses CSS 3D card-flip. */
+.flip{
   position:absolute;top:0;
-  width:var(--pw);height:var(--ph);
+  pointer-events:none;z-index:5;
   transform-style:preserve-3d;
-  transition:transform 0.65s cubic-bezier(0.645,0.045,0.355,1);
-  z-index:5;pointer-events:none;
+  transition:transform 0.62s cubic-bezier(0.645,0.045,0.355,1);
+  backface-visibility:hidden;
 }
-.turn-overlay.fwd{transform-origin:left center;left:calc(var(--pw) + 10px);}
-.turn-overlay.bwd{transform-origin:right center;left:0;}
-.turn-overlay.go{transform:rotateY(-180deg);}
-.turn-overlay.bwd.go{transform:rotateY(180deg);}
-
-.t-face,.t-back{
+.flip .ff,.flip .fb{
   position:absolute;inset:0;
   backface-visibility:hidden;-webkit-backface-visibility:hidden;
   overflow:hidden;
 }
-.t-face{border-radius:0 4px 4px 0;}
-.t-back{transform:rotateY(180deg);border-radius:4px 0 0 4px;}
-.t-face img,.t-back img{width:100%;height:100%;object-fit:cover;display:block;}
+.flip .fb{transform:rotateY(180deg);}
+.flip img{width:100%;height:100%;object-fit:cover;display:block;}
 
-/* fold shadow */
-.fold-shadow{
-  position:absolute;top:0;left:calc(var(--pw) + 10px);
-  width:18px;height:var(--ph);
-  background:linear-gradient(to right,rgba(0,0,0,0.3),transparent);
-  pointer-events:none;z-index:6;opacity:0;transition:opacity 0.2s;
+/* fold shadow that appears during turn */
+.fold{
+  position:absolute;top:0;pointer-events:none;z-index:6;
+  width:20px;
+  background:linear-gradient(to right,rgba(0,0,0,0.32),transparent);
+  opacity:0;transition:opacity 0.15s;
 }
-.fold-shadow.show{opacity:1;}
 
 /* click zones */
 .cz{
-  position:absolute;top:0;height:100%;width:45%;
-  cursor:pointer;z-index:8;background:transparent;
-}
-.cz.czl{left:0;}
-.cz.czr{right:0;}
-
-/* ── MOBILE: single page mode ── */
-@media(max-width:600px){
-  .page-panel.left,.spine{display:none;}
-  .page-panel.right{border-radius:4px;width:var(--pw)!important;}
-  .book-wrap{justify-content:center;}
-  .turn-overlay{left:0!important;transform-origin:center center!important;}
-  .fold-shadow{display:none;}
-  .cz.czl{left:0;width:40%;}
-  .cz.czr{right:0;width:40%;}
+  position:absolute;top:0;height:100%;
+  cursor:pointer;z-index:8;
 }
 
 /* ── CONTROLS ── */
 .controls{
   display:flex;align-items:center;gap:12px;
-  margin-top:20px;position:relative;z-index:1;
+  margin-top:18px;position:relative;z-index:1;
   flex-wrap:wrap;justify-content:center;
 }
 .btn{
   background:linear-gradient(135deg,#0d3d6e,#0a2a4a);
-  border:1px solid rgba(100,200,255,0.3);
-  color:#a8d8ea;padding:9px 22px;border-radius:30px;
+  border:1px solid rgba(100,200,255,0.3);color:#a8d8ea;
+  padding:9px 22px;border-radius:30px;
   font-family:'Cinzel',serif;font-size:clamp(10px,2vw,13px);
   letter-spacing:0.08em;cursor:pointer;
   transition:all 0.2s;box-shadow:0 4px 14px rgba(0,0,0,0.3);
-  touch-action:manipulation;
+  touch-action:manipulation;-webkit-tap-highlight-color:transparent;
 }
 .btn:hover:not(:disabled){
   background:linear-gradient(135deg,#1a5fa0,#0d3d6e);
@@ -159,71 +137,67 @@ header p{
 }
 .btn:active:not(:disabled){transform:translateY(0);}
 .btn:disabled{opacity:0.3;cursor:not-allowed;}
-.indicator{
+.ind{
   font-family:'Cinzel',serif;font-size:clamp(10px,2vw,12px);
-  color:#a8d8ea;min-width:120px;text-align:center;letter-spacing:0.06em;
+  color:#a8d8ea;min-width:130px;text-align:center;letter-spacing:0.06em;
 }
 
 /* ── THUMBNAILS ── */
-.thumb-strip{
-  display:flex;gap:6px;
-  margin-top:16px;overflow-x:auto;
+.thumbs{
+  display:flex;gap:6px;margin-top:14px;overflow-x:auto;
   max-width:min(95vw,680px);
   padding:6px 4px;position:relative;z-index:1;
   scrollbar-width:thin;scrollbar-color:#1a4a6e transparent;
 }
-.thumb-strip::-webkit-scrollbar{height:3px;}
-.thumb-strip::-webkit-scrollbar-thumb{background:#1a4a6e;border-radius:2px;}
+.thumbs::-webkit-scrollbar{height:3px;}
+.thumbs::-webkit-scrollbar-thumb{background:#1a4a6e;border-radius:2px;}
 .thumb{
-  flex-shrink:0;width:40px;height:57px;
-  border-radius:3px;overflow:hidden;cursor:pointer;
-  border:2px solid transparent;transition:all 0.18s;opacity:0.55;
+  flex-shrink:0;border-radius:3px;overflow:hidden;
+  cursor:pointer;border:2px solid transparent;
+  transition:all 0.18s;opacity:0.55;
 }
 .thumb:hover{opacity:0.85;transform:translateY(-3px);}
-.thumb.active{border-color:#f5e06a;opacity:1;transform:translateY(-3px);}
-.thumb img{width:100%;height:100%;object-fit:cover;}
+.thumb.on{border-color:#f5e06a;opacity:1;transform:translateY(-3px);}
+.thumb img{display:block;object-fit:cover;}
 
-.hint{
-  margin-top:12px;font-size:10px;
-  color:rgba(168,216,234,0.4);letter-spacing:0.1em;
-  text-align:center;position:relative;z-index:1;
-}
-@media(max-width:600px){.hint{display:none;}}
-
-/* ── SWIPE indicator dots (mobile) ── */
-.swipe-dots{
-  display:none;gap:6px;margin-top:12px;
+/* dots for mobile */
+.dots{
+  display:none;gap:6px;margin-top:10px;
   position:relative;z-index:1;
   flex-wrap:wrap;justify-content:center;max-width:200px;
 }
-@media(max-width:600px){.swipe-dots{display:flex;}}
 .dot{
   width:6px;height:6px;border-radius:50%;
-  background:rgba(168,216,234,0.25);transition:all 0.2s;cursor:pointer;
+  background:rgba(168,216,234,0.25);transition:all 0.18s;cursor:pointer;
 }
-.dot.active{background:#f5e06a;transform:scale(1.3);}
+.dot.on{background:#f5e06a;transform:scale(1.35);}
+
+.hint{
+  margin-top:10px;font-size:10px;
+  color:rgba(168,216,234,0.38);letter-spacing:0.1em;
+  text-align:center;position:relative;z-index:1;
+}
 
 /* ── LOADING ── */
-.loading-screen{
+.loader{
   position:fixed;inset:0;background:#040d1a;
-  display:flex;flex-direction:column;
-  align-items:center;justify-content:center;
+  display:flex;flex-direction:column;align-items:center;justify-content:center;
   z-index:100;transition:opacity 0.5s;
 }
-.loading-screen.done{opacity:0;pointer-events:none;}
-.fish-anim{font-size:44px;animation:swim 1.4s ease-in-out infinite;}
-@keyframes swim{0%,100%{transform:translateY(0) rotate(-5deg)}50%{transform:translateY(-12px) rotate(5deg)}}
-.load-text{font-family:'Cinzel',serif;color:#f5e06a;font-size:15px;margin-top:14px;letter-spacing:0.15em;}
-.load-bar-wrap{width:180px;height:3px;background:rgba(255,255,255,0.1);border-radius:2px;margin-top:10px;}
-.load-bar{height:100%;background:linear-gradient(to right,#4ac9f0,#f5e06a);border-radius:2px;transition:width 0.2s;}
+.loader.out{opacity:0;pointer-events:none;}
+.fish{font-size:44px;animation:bob 1.4s ease-in-out infinite;}
+@keyframes bob{0%,100%{transform:translateY(0) rotate(-5deg)}50%{transform:translateY(-12px) rotate(5deg)}}
+.ltxt{font-family:'Cinzel',serif;color:#f5e06a;font-size:15px;margin-top:14px;letter-spacing:0.15em;}
+.lbar{width:180px;height:3px;background:rgba(255,255,255,0.1);border-radius:2px;margin-top:10px;}
+.lbfill{height:100%;background:linear-gradient(to right,#4ac9f0,#f5e06a);border-radius:2px;width:0%;transition:width 0.2s;}
 </style>
 </head>
 <body>
 
-<div class="loading-screen" id="loadingScreen">
-  <div class="fish-anim">🐠</div>
-  <div class="load-text">Diving Under the Sea…</div>
-  <div class="load-bar-wrap"><div class="load-bar" id="loadBar" style="width:0%"></div></div>
+<div class="loader" id="loader">
+  <div class="fish">🐠</div>
+  <div class="ltxt">Diving Under the Sea…</div>
+  <div class="lbar"><div class="lbfill" id="lbfill"></div></div>
 </div>
 
 <div class="bubbles" id="bubbles"></div>
@@ -233,270 +207,322 @@ header p{
   <p>St Mary Star of the Sea College · 21–23 May 2026</p>
 </header>
 
-<div class="scene">
-  <div class="book-wrap cover-mode" id="bookWrap">
-
-    <div class="page-panel left" id="leftPanel">
-      <img id="leftImg" src="" alt="Left page" draggable="false">
-      <span class="pnum" id="leftNum"></span>
+<div class="book-scene" id="scene">
+  <div class="book" id="book" style="perspective:2000px;">
+    <div class="page" id="lp">
+      <img id="li" src="" alt="">
+      <span class="pnum" id="ln"></span>
     </div>
-
     <div class="spine" id="spine"></div>
-
-    <div class="page-panel right" id="rightPanel">
-      <img id="rightImg" src="" alt="Right page" draggable="false">
-      <span class="pnum" id="rightNum"></span>
+    <div class="page" id="rp">
+      <img id="ri" src="" alt="">
+      <span class="pnum" id="rn"></span>
     </div>
-
-    <!-- Page turn overlay -->
-    <div class="turn-overlay fwd" id="turnOverlay">
-      <div class="t-face"><img id="tFace" src="" alt="" draggable="false"></div>
-      <div class="t-back"><img id="tBack" src="" alt="" draggable="false"></div>
-    </div>
-    <div class="fold-shadow" id="foldShadow"></div>
-
-    <!-- Click zones -->
-    <div class="cz czl" id="czLeft"></div>
-    <div class="cz czr" id="czRight"></div>
+    <!-- flip card and fold shadow injected by JS -->
+    <div class="cz" id="czl" style="left:0;width:45%;"></div>
+    <div class="cz" id="czr" style="right:0;width:45%;"></div>
   </div>
 </div>
 
 <div class="controls">
-  <button class="btn" id="prevBtn">◀ Prev</button>
-  <span class="indicator" id="indicator">Cover</span>
-  <button class="btn" id="nextBtn">Next ▶</button>
+  <button class="btn" id="pb">◀ Prev</button>
+  <span class="ind" id="ind">Cover</span>
+  <button class="btn" id="nb">Next ▶</button>
 </div>
 
-<div class="thumb-strip" id="thumbStrip"></div>
-<div class="swipe-dots" id="swipeDots"></div>
+<div class="thumbs" id="thumbs"></div>
+<div class="dots"  id="dots"></div>
 <p class="hint">← → arrow keys · click either side to turn</p>
 
 <script>
-// ─────────────────────────────────────────────
-// PAGE MAP
-// Spread 0  → cover only  (right = page 1, left = blank)
-// Spread 1  → pages 2–3   (left = 2, right = 3)
-// Spread 2  → pages 4–5
-// ...
-// Spread 8  → page 16 only (left = 16, right = blank)
-// ─────────────────────────────────────────────
+// ══════════════════════════════════════════
+// SPREAD MAP (verified):
+//
+//  Spread 0 → Cover alone  (right = p1,  left = blank)
+//  Spread 1 → p2  | p3
+//  Spread 2 → p4  | p5
+//  Spread 3 → p6  | p7
+//  Spread 4 → p8  | p9
+//  Spread 5 → p10 | p11
+//  Spread 6 → p12 | p13
+//  Spread 7 → p14 | p15
+//  Spread 8 → p16 alone (left = p16, right = blank)
+//
+//  left(s)  = s===0 ? 0  : s===8 ? 16 : s*2
+//  right(s) = s===0 ? 1  : s===8 ? 0  : s*2+1
+// ══════════════════════════════════════════
+
 const TOTAL = 16;
-const pages = Array.from({length:TOTAL},(_,i)=>`pages/page_${String(i+1).padStart(2,'0')}.jpg`);
+const SPREADS = 9;  // 0..8
+const IMG = n => n >= 1 && n <= TOTAL
+  ? `pages/page_${String(n).padStart(2,'0')}.jpg` : '';
 
-function spreadPages(s) {
-  if (s === 0)           return { L: 0,       R: 1 };   // cover alone on right
-  if (s * 2 >= TOTAL)   return { L: TOTAL,    R: 0 };   // last page alone on left (if odd)
-  return                        { L: s*2,      R: s*2+1 };
+function spreadMap(s) {
+  if (s === 0) return { L: 0,     R: 1  };   // cover alone on right
+  if (s === 8) return { L: 16,    R: 0  };   // last page alone on left
+  return             { L: s*2,    R: s*2+1 };
 }
-// 0 means "blank"
-const TOTAL_SPREADS = Math.ceil((TOTAL - 1) / 2) + 1; // 9 for 16 pages
-
-function src(p) { return p >= 1 && p <= TOTAL ? pages[p-1] : ''; }
 
 // ── Sizing ──
-function pageSize() {
-  const isMobile = window.innerWidth <= 600;
-  if (isMobile) {
-    const w = Math.min(window.innerWidth - 24, 340);
-    return { w, h: Math.round(w / 0.707) };
+function isMobile() { return window.innerWidth <= 600; }
+
+function calcSize() {
+  if (isMobile()) {
+    const w = Math.min(window.innerWidth - 20, 340);
+    return { pw: w, ph: Math.round(w / 0.707), mobile: true };
   }
-  const maxW = Math.min((window.innerWidth - 80) / 2, 380);
+  const maxW = Math.min((window.innerWidth - 80) / 2, 390);
   const h = Math.min(maxW / 0.707, window.innerHeight * 0.65);
-  return { w: Math.round(h * 0.707), h: Math.round(h) };
+  return { pw: Math.round(h * 0.707), ph: Math.round(h), mobile: false };
 }
 
-let { w: PW, h: PH } = pageSize();
+let SZ = calcSize();
+
 function applySize() {
-  document.documentElement.style.setProperty('--pw', PW+'px');
-  document.documentElement.style.setProperty('--ph', PH+'px');
+  const lp = document.getElementById('lp');
+  const rp = document.getElementById('rp');
+  const spine = document.getElementById('spine');
+  lp.style.height = rp.style.height = spine.style.height = SZ.ph + 'px';
+  spine.style.width = SZ.mobile ? '0' : '10px';
+
+  // On mobile show only right panel; left panel width = 0
+  if (SZ.mobile) {
+    lp.style.width = '0'; lp.style.overflow = 'hidden';
+    rp.style.width = SZ.pw + 'px'; rp.style.borderRadius = '4px';
+  } else {
+    lp.style.width = rp.style.width = SZ.pw + 'px';
+    lp.style.overflow = rp.style.overflow = 'hidden';
+    lp.style.borderRadius = '4px 0 0 4px';
+    rp.style.borderRadius = '0 4px 4px 0';
+  }
 }
 applySize();
+
 window.addEventListener('resize', () => {
-  ({w:PW,h:PH} = pageSize()); applySize();
+  SZ = calcSize();
+  applySize();
+  render(cur);
 });
 
+// ── Flip card elements ──
+const flipEl = document.createElement('div'); flipEl.className = 'flip';
+const ffEl   = document.createElement('div'); ffEl.className = 'ff';
+const fbEl   = document.createElement('div'); fbEl.className = 'fb';
+const ffi    = document.createElement('img'); ffi.draggable = false;
+const fbi    = document.createElement('img'); fbi.draggable = false;
+ffEl.appendChild(ffi); fbEl.appendChild(fbi);
+flipEl.appendChild(ffEl); flipEl.appendChild(fbEl);
+
+const foldEl = document.createElement('div'); foldEl.className = 'fold';
+
+document.getElementById('book').appendChild(flipEl);
+document.getElementById('book').appendChild(foldEl);
+
 // ── State ──
-let cur = 0, turning = false;
-
-// ── DOM ──
-const bookWrap    = document.getElementById('bookWrap');
-const leftImg     = document.getElementById('leftImg');
-const rightImg    = document.getElementById('rightImg');
-const leftNum     = document.getElementById('leftNum');
-const rightNum    = document.getElementById('rightNum');
-const turnOverlay = document.getElementById('turnOverlay');
-const tFace       = document.getElementById('tFace');
-const tBack       = document.getElementById('tBack');
-const foldShadow  = document.getElementById('foldShadow');
-const prevBtn     = document.getElementById('prevBtn');
-const nextBtn     = document.getElementById('nextBtn');
-const indicator   = document.getElementById('indicator');
-const thumbStrip  = document.getElementById('thumbStrip');
-const swipeDots   = document.getElementById('swipeDots');
-
-// ── Preload ──
-let loaded = 0;
-const loadBar = document.getElementById('loadBar');
-function preload() {
-  return new Promise(res => {
-    pages.forEach(s => {
-      const img = new Image();
-      img.onload = img.onerror = () => {
-        loaded++;
-        loadBar.style.width = (loaded/TOTAL*100)+'%';
-        if (loaded === TOTAL) res();
-      };
-      img.src = s;
-    });
-  });
-}
+let cur = 0, busy = false;
 
 // ── Render ──
 function render(s) {
-  const {L, R} = spreadPages(s);
-  const isMobile = window.innerWidth <= 600;
-  const isCover = s === 0;
-  const isLastAlone = TOTAL % 2 === 0 && s === TOTAL_SPREADS - 1;
+  const {L, R} = spreadMap(s);
+  const mob = SZ.mobile;
 
-  // Cover mode (cover alone or last-page-alone): hide left panel
-  const alone = isCover || isLastAlone;
-  bookWrap.classList.toggle('cover-mode', alone && !isMobile);
-
-  leftImg.src  = src(L);
-  leftNum.textContent  = L ? L : '';
-  rightImg.src = src(R);
-  rightNum.textContent = R ? R : '';
-
-  // Indicator
-  if (isCover) {
-    indicator.textContent = 'Cover · Page 1';
-  } else if (isLastAlone) {
-    indicator.textContent = `Page ${L} of ${TOTAL}`;
-  } else {
-    const isMob = window.innerWidth <= 600;
-    // On mobile show only right page
-    if (isMob) indicator.textContent = `Page ${R} of ${TOTAL}`;
-    else indicator.textContent = `Pages ${L}–${R} of ${TOTAL}`;
+  // Left panel: only show on desktop and when L exists
+  const lp = document.getElementById('lp');
+  const spine = document.getElementById('spine');
+  if (!mob) {
+    const showLeft = L > 0;
+    lp.style.width   = showLeft ? SZ.pw + 'px' : '0';
+    spine.style.width = showLeft ? '10px' : '0';
+    lp.style.borderRadius = '4px 0 0 4px';
+    document.getElementById('rp').style.borderRadius = showLeft ? '0 4px 4px 0' : '4px';
   }
 
-  prevBtn.disabled = s === 0;
-  nextBtn.disabled = s >= TOTAL_SPREADS - 1;
+  // Images
+  document.getElementById('li').src = IMG(L);
+  document.getElementById('ri').src = IMG(R);
+  document.getElementById('ln').textContent = L || '';
+  document.getElementById('rn').textContent = R || '';
 
-  document.querySelectorAll('.thumb').forEach((t,i) => t.classList.toggle('active', i===s));
-  document.querySelectorAll('.dot').forEach((d,i) => d.classList.toggle('active', i===s));
-  thumbStrip.children[s]?.scrollIntoView({behavior:'smooth',block:'nearest',inline:'center'});
+  // Indicator
+  const ind = document.getElementById('ind');
+  if (s === 0)              ind.textContent = `Cover · Page 1 of ${TOTAL}`;
+  else if (s === SPREADS-1) ind.textContent = `Page ${L} of ${TOTAL}`;
+  else if (mob)             ind.textContent = `Page ${R} of ${TOTAL}`;
+  else                      ind.textContent = `Pages ${L}–${R} of ${TOTAL}`;
+
+  document.getElementById('pb').disabled = s === 0;
+  document.getElementById('nb').disabled = s === SPREADS - 1;
+
+  // Thumbnails + dots
+  document.querySelectorAll('.thumb').forEach((t,i) => t.classList.toggle('on', i===s));
+  document.querySelectorAll('.dot').forEach((d,i)  => d.classList.toggle('on', i===s));
+  document.getElementById('thumbs').children[s]
+    ?.scrollIntoView({behavior:'smooth',block:'nearest',inline:'center'});
 }
 
 // ── Turn ──
 function turn(dir) {
-  if (turning) return;
+  if (busy) return;
   const next = cur + dir;
-  if (next < 0 || next >= TOTAL_SPREADS) return;
-  turning = true;
+  if (next < 0 || next >= SPREADS) return;
+  busy = true;
 
-  const {L:cL, R:cR} = spreadPages(cur);
-  const {L:nL, R:nR} = spreadPages(next);
-  const isMobile = window.innerWidth <= 600;
-
-  if (isMobile) {
-    // Simple fade swap on mobile
-    rightImg.style.opacity = '0';
+  if (SZ.mobile) {
+    // Simple fade on mobile
+    const ri = document.getElementById('ri');
+    ri.style.transition = 'opacity 0.22s';
+    ri.style.opacity = '0';
     setTimeout(() => {
-      cur = next;
-      render(cur);
-      rightImg.style.opacity = '1';
-      turning = false;
+      cur = next; render(cur);
+      ri.style.opacity = '1';
+      setTimeout(() => { ri.style.transition = ''; busy = false; }, 240);
     }, 220);
-    rightImg.style.transition = 'opacity 0.2s';
-    setTimeout(() => rightImg.style.transition = '', 450);
     return;
   }
 
-  turnOverlay.classList.remove('fwd','bwd','go');
+  // Desktop 3D flip
+  const {L:cL, R:cR} = spreadMap(cur);
+  const {L:nL, R:nR} = spreadMap(next);
+
+  // Size the flip overlay to match one page
+  flipEl.style.width  = SZ.pw + 'px';
+  flipEl.style.height = SZ.ph + 'px';
+  foldEl.style.height = SZ.ph + 'px';
 
   if (dir === 1) {
-    // Forward: right page flips over to reveal next left
-    tFace.src = src(cR);
-    tBack.src = src(nL);
-    turnOverlay.style.left = (PW + 10) + 'px';
-    turnOverlay.classList.add('fwd');
-    foldShadow.classList.add('show');
+    // Forward: right page flips over spine to become next left page
+    //   face  = current right page
+    //   back  = next left page (revealed behind)
+    ffi.src = IMG(cR);
+    fbi.src = IMG(nL);
+    // Position flip over the RIGHT panel
+    const rightOffset = SZ.pw + 10; // left-panel width + spine
+    flipEl.style.left = rightOffset + 'px';
+    flipEl.style.transformOrigin = 'left center';
+    ffEl.style.borderRadius = '0 4px 4px 0';
+    fbEl.style.borderRadius = '4px 0 0 4px';
+    foldEl.style.left = rightOffset + 'px';
+    foldEl.style.background = 'linear-gradient(to right, rgba(0,0,0,0.3), transparent)';
   } else {
-    // Backward: left page flips back to reveal prev right
-    tFace.src = src(cL);
-    tBack.src = src(nR);
-    turnOverlay.style.left = '0px';
-    turnOverlay.classList.add('bwd');
-    foldShadow.classList.add('show');
+    // Backward: left page flips back over spine to become prev right page
+    //   face  = current left page
+    //   back  = prev right page (revealed behind)
+    ffi.src = IMG(cL);
+    fbi.src = IMG(nR);
+    // Position flip over the LEFT panel
+    flipEl.style.left = '0px';
+    flipEl.style.transformOrigin = 'right center';
+    ffEl.style.borderRadius = '4px 0 0 4px';
+    fbEl.style.borderRadius = '0 4px 4px 0';
+    foldEl.style.left = (SZ.pw - 20) + 'px';
+    foldEl.style.background = 'linear-gradient(to left, rgba(0,0,0,0.3), transparent)';
   }
 
-  requestAnimationFrame(() => {
-    requestAnimationFrame(() => { turnOverlay.classList.add('go'); });
-  });
+  // Reset transform without transition, then animate
+  flipEl.style.transition = 'none';
+  flipEl.style.transform = 'rotateY(0deg)';
+  foldEl.style.opacity = '0';
 
-  setTimeout(() => {
-    cur = next;
-    render(cur);
-    turnOverlay.classList.remove('go','fwd','bwd');
-    foldShadow.classList.remove('show');
-    turning = false;
-  }, 670);
+  requestAnimationFrame(() => requestAnimationFrame(() => {
+    flipEl.style.transition = 'transform 0.62s cubic-bezier(0.645,0.045,0.355,1)';
+    flipEl.style.transform = dir === 1 ? 'rotateY(-180deg)' : 'rotateY(180deg)';
+    foldEl.style.opacity = '1';
+    foldEl.style.transition = 'opacity 0.15s';
+
+    setTimeout(() => {
+      cur = next;
+      render(cur);
+      // Hide flip overlay instantly after render
+      flipEl.style.transition = 'none';
+      flipEl.style.transform = 'rotateY(0deg)';
+      foldEl.style.opacity = '0';
+      busy = false;
+    }, 640);
+  }));
 }
 
 // ── Controls ──
-prevBtn.addEventListener('click', () => turn(-1));
-nextBtn.addEventListener('click', () => turn(1));
-document.getElementById('czLeft').addEventListener('click',  () => turn(-1));
-document.getElementById('czRight').addEventListener('click', () => turn(1));
+document.getElementById('pb').addEventListener('click', () => turn(-1));
+document.getElementById('nb').addEventListener('click', () => turn(1));
+document.getElementById('czl').addEventListener('click', () => turn(-1));
+document.getElementById('czr').addEventListener('click', () => turn(1));
 document.addEventListener('keydown', e => {
-  if (e.key==='ArrowRight') turn(1);
-  if (e.key==='ArrowLeft')  turn(-1);
+  if (e.key === 'ArrowRight') turn(1);
+  if (e.key === 'ArrowLeft')  turn(-1);
 });
 
-// ── Swipe ──
-let touchStartX = 0;
-document.querySelector('.scene').addEventListener('touchstart', e => {
-  touchStartX = e.touches[0].clientX;
+// Swipe
+let tx = 0;
+document.getElementById('scene').addEventListener('touchstart', e => {
+  tx = e.touches[0].clientX;
 }, {passive:true});
-document.querySelector('.scene').addEventListener('touchend', e => {
-  const dx = e.changedTouches[0].clientX - touchStartX;
+document.getElementById('scene').addEventListener('touchend', e => {
+  const dx = e.changedTouches[0].clientX - tx;
   if (Math.abs(dx) > 40) turn(dx < 0 ? 1 : -1);
 }, {passive:true});
 
-// ── Build thumbnails + dots ──
-for (let s = 0; s < TOTAL_SPREADS; s++) {
-  const {L, R} = spreadPages(s);
-  const thumbSrc = src(R || L);
+// ── Build thumbs + dots ──
+const thumbsEl = document.getElementById('thumbs');
+const dotsEl   = document.getElementById('dots');
+const THUMB_W  = 40, THUMB_H = Math.round(40 / 0.707);
+
+for (let s = 0; s < SPREADS; s++) {
+  const {L, R} = spreadMap(s);
+  const tSrc = IMG(R || L);  // prefer right page for thumbnail
+
+  const t = document.createElement('div');
+  t.className = 'thumb';
+  t.title = s===0 ? 'Cover' : s===SPREADS-1 ? `Page ${L}` : `Pages ${L}–${R}`;
+  t.innerHTML = `<img src="${tSrc}" width="${THUMB_W}" height="${THUMB_H}" loading="lazy" alt="">`;
+  t.addEventListener('click', () => { if (!busy && s!==cur) { cur=s; render(cur); }});
+  thumbsEl.appendChild(t);
 
   const d = document.createElement('div');
-  d.className = 'thumb';
-  d.title = s===0 ? 'Cover' : `Pages ${L}–${Math.min(R,TOTAL)}`;
-  d.innerHTML = `<img src="${thumbSrc}" loading="lazy" alt="">`;
-  d.addEventListener('click', () => { if (!turning && s!==cur){ cur=s; render(cur); }});
-  thumbStrip.appendChild(d);
-
-  const dot = document.createElement('div');
-  dot.className = 'dot';
-  dot.addEventListener('click', () => { if (!turning && s!==cur){ cur=s; render(cur); }});
-  swipeDots.appendChild(dot);
+  d.className = 'dot';
+  d.addEventListener('click', () => { if (!busy && s!==cur) { cur=s; render(cur); }});
+  dotsEl.appendChild(d);
 }
+
+// Show dots on mobile
+if (isMobile()) {
+  dotsEl.style.display = 'flex';
+  document.querySelector('.thumbs').style.display = 'none';
+}
+window.addEventListener('resize', () => {
+  const mob = isMobile();
+  dotsEl.style.display  = mob ? 'flex' : 'none';
+  thumbsEl.style.display = mob ? 'none' : 'flex';
+});
 
 // ── Bubbles ──
-const bubCont = document.getElementById('bubbles');
+const bc = document.getElementById('bubbles');
 for (let i = 0; i < 18; i++) {
-  const b = document.createElement('div');
-  b.className = 'bubble';
+  const b = document.createElement('div'); b.className = 'bubble';
   const sz = 5 + Math.random()*18;
-  b.style.cssText = `width:${sz}px;height:${sz}px;left:${Math.random()*100}%;animation-duration:${8+Math.random()*14}s;animation-delay:${Math.random()*12}s;opacity:${0.2+Math.random()*0.4};`;
-  bubCont.appendChild(b);
+  b.style.cssText = `width:${sz}px;height:${sz}px;left:${Math.random()*100}%;`
+    + `animation-duration:${8+Math.random()*14}s;animation-delay:${Math.random()*12}s;`
+    + `opacity:${0.2+Math.random()*0.38};`;
+  bc.appendChild(b);
 }
 
-// ── Init ──
-preload().then(() => {
+// ── Preload & init ──
+let loaded = 0;
+const fill = document.getElementById('lbfill');
+const allImgs = Array.from({length:TOTAL}, (_,i) =>
+  `pages/page_${String(i+1).padStart(2,'0')}.jpg`);
+
+Promise.all(allImgs.map(src => new Promise(res => {
+  const img = new Image();
+  img.onload = img.onerror = () => {
+    fill.style.width = (++loaded / TOTAL * 100) + '%';
+    res();
+  };
+  img.src = src;
+}))).then(() => {
   render(0);
-  const ls = document.getElementById('loadingScreen');
-  ls.classList.add('done');
-  setTimeout(() => ls.remove(), 600);
+  const loader = document.getElementById('loader');
+  loader.classList.add('out');
+  setTimeout(() => loader.remove(), 600);
 });
 </script>
 </body>
